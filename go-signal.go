@@ -17,6 +17,7 @@ func main() {
     signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
     go func() {
+        // receive Ctrl + C from command line from channel sigs
         sig := <-sigs
         fmt.Println()
         fmt.Println(sig)
