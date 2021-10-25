@@ -14,5 +14,5 @@ func main() {
         panic("failed to connect database")
     }
 
-    migration.RollbackMigration(db)
+    migration.RunMigration(db)
 }

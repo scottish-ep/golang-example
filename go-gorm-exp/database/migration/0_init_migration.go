@@ -6,8 +6,9 @@ import (
     "example.com/go-gorm-exp/models"
 )
 
-func InitMigrationUp(db *gorm.DB) {
-    db.AutoMigrate(&models.Migration{})
+func InitMigrationUp(db *gorm.DB) error {
+    err := db.AutoMigrate(&models.Migration{})
+    return err
 }
 
 func InitMigrationDown(db *gorm.DB) {
