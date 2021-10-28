@@ -14,3 +14,8 @@ func InitMigrationUp(db *gorm.DB) error {
 func InitMigrationDown(db *gorm.DB) {
     db.Migrator().DropTable(&models.Migration{})
 }
+
+func InitMigration() {
+    MigrationStorage["InitMigrationUp"] = InitMigrationUp
+    MigrationStorage["InitMigrationDown"] = InitMigrationDown
+}

@@ -13,6 +13,7 @@ func main() {
     if err != nil {
         panic("failed to connect database")
     }
-
+    
+    migration.RegisterMigration()
     migration.RunMigration(db)
 }

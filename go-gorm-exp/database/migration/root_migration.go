@@ -2,8 +2,8 @@ package migration
 
 import (
     "strings"
-    "fmt"
-    // "reflect"
+    "reflect"
+    "errors"
     "os"
     "gorm.io/gorm"
     "path/filepath"
@@ -11,6 +11,27 @@ import (
 
     "example.com/go-gorm-exp/models"
 )
+
+type migrationMapping map[string]interface{}
+
+var MigrationStorage = migrationMapping{}
+
+
+func Call(funcName string, params ... interface{}) (result interface{}, err error) {
+	f := reflect.ValueOf(MigrationStorage[funcName])
+	if len(params) != f.Type().NumIn() {
+		err = errors.New("The number of params is out of index.")
+		return
+	}
+	in := make([]reflect.Value, len(params))
+	for k, param := range params {
+		in[k] = reflect.ValueOf(param)
+	}
+	var res []reflect.Value
+	res = f.Call(in)
+	result = res[0].Interface()
+	return
+}
 
 func GetMigrationFile() []string {
     var files []string
@@ -23,7 +44,7 @@ func GetMigrationFile() []string {
         var fileNameFull = info.Name()
         var extension = filepath.Ext(fileNameFull)
         var fileName = fileNameFull[0:len(fileNameFull)-len(extension)]
-        if (fileName != "rootMigration") {
+        if (fileName != "root_migration" && fileName != "register_migration") {
             files = append(files, fileName)
         }
         return nil
@@ -39,16 +60,14 @@ func ParseFuncName(name string) string {
     return strcase.ToCamel(name[split+1:len(name)])
 }
 
-func RunMigrationFile(fileName string, migrationIndex uint, isUp bool) {
+func RunMigrationFile(db *gorm.DB, fileName string, migrationIndex uint, isUp bool) {
     var funcName = ParseFuncName(fileName)
     if (isUp) {
         funcName = funcName + "Up"
     } else {
         funcName = funcName + "Down"
     }
-    fmt.Println(fileName)
-    fmt.Println(funcName)
-    fmt.Println(migrationIndex)
+    Call(funcName, db)
 }
 
 func RunMigration(db *gorm.DB) {
@@ -56,14 +75,8 @@ func RunMigration(db *gorm.DB) {
     var files = GetMigrationFile()
     db.Order("batch desc").First(&migration).Select("batch")
     var migrationIndex = migration.Batch + 1;
-    // if (err != nil) {
-    //     fmt.Println(migration)
-    //     fmt.Println(migration.Batch)
-    // } else {
-    //     fmt.Println(migration)
-    // }
     for _, file := range files {
-        RunMigrationFile(file, migrationIndex, true)
+        RunMigrationFile(db, file, migrationIndex, true)
     }
 }
 
