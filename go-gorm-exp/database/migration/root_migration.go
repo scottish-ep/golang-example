@@ -1,7 +1,7 @@
 package migration
 
 import (
-    "fmt"
+    // "fmt"
     "strings"
     "reflect"
     "errors"
@@ -66,26 +66,44 @@ func RunMigrationFile(db *gorm.DB, fileName string, migrationIndex uint, isUp bo
     } else {
         funcName = funcName + "Down"
     }
-    Call(funcName, db)
     if (isUp) {
         result := db.Where(&models.Migration{Migration: fileName}).First(&migration)
         if (result.RowsAffected == 0) {
-            fmt.Println(migration)
+            Call(funcName, db)
             migration = models.Migration{
                 Batch: migrationIndex,
                 Migration: fileName,
             }
             db.Create(&migration)
         }
+    } else {
+        Call(funcName, db)
+        db.Unscoped().Where(&models.Migration{
+            Batch: migrationIndex,
+            Migration: fileName,
+        }).Delete(&migration)
     }
 }
 
 func RunMigration(db *gorm.DB, isUp bool) {
     var migration = models.Migration{}
+    var migrations = []models.Migration{}
     var files = GetMigrationFile()
     db.Order("batch desc").First(&migration).Select("batch")
-    var migrationIndex = migration.Batch + 1;
-    for _, file := range files {
-        RunMigrationFile(db, file, migrationIndex, isUp)
+    var migrationIndex = migration.Batch;
+    if (isUp) {
+        migrationIndex++;
+        for _, file := range files {
+            RunMigrationFile(db, file, migrationIndex, isUp)
+        }
+    } else {
+        result := db.Where(&models.Migration{
+            Batch: migrationIndex,
+        }).Select("migration").Find(&migrations)
+        if (result.RowsAffected != 0) {
+            for _, value := range migrations {
+                RunMigrationFile(db, value.Migration, migrationIndex, isUp)
+            }
+        }
     }
 }

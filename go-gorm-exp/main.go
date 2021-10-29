@@ -15,5 +15,5 @@ func main() {
     }
 
     migration.RegisterMigration()
-    migration.RunMigration(db, true)
+    migration.RunMigration(db, false)
 }
