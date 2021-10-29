@@ -1,6 +1,7 @@
 package migration
 
 import (
+    "fmt"
     "strings"
     "reflect"
     "errors"
@@ -27,15 +28,12 @@ func Call(funcName string, params ... interface{}) (result interface{}, err erro
 	for k, param := range params {
 		in[k] = reflect.ValueOf(param)
 	}
-	var res []reflect.Value
-	res = f.Call(in)
-	result = res[0].Interface()
+	result = f.Call(in)
 	return
 }
 
 func GetMigrationFile() []string {
     var files []string
-
     migrationFolder := "./database/migration"
     err := filepath.Walk(migrationFolder, func(path string, info os.FileInfo, err error) error {
         if info.IsDir() {
@@ -62,24 +60,32 @@ func ParseFuncName(name string) string {
 
 func RunMigrationFile(db *gorm.DB, fileName string, migrationIndex uint, isUp bool) {
     var funcName = ParseFuncName(fileName)
+    var migration = models.Migration{}
     if (isUp) {
         funcName = funcName + "Up"
     } else {
         funcName = funcName + "Down"
     }
     Call(funcName, db)
+    if (isUp) {
+        result := db.Where(&models.Migration{Migration: fileName}).First(&migration)
+        if (result.RowsAffected == 0) {
+            fmt.Println(migration)
+            migration = models.Migration{
+                Batch: migrationIndex,
+                Migration: fileName,
+            }
+            db.Create(&migration)
+        }
+    }
 }
 
-func RunMigration(db *gorm.DB) {
+func RunMigration(db *gorm.DB, isUp bool) {
     var migration = models.Migration{}
     var files = GetMigrationFile()
     db.Order("batch desc").First(&migration).Select("batch")
     var migrationIndex = migration.Batch + 1;
     for _, file := range files {
-        RunMigrationFile(db, file, migrationIndex, true)
+        RunMigrationFile(db, file, migrationIndex, isUp)
     }
-}
-
-func RollbackMigration(db *gorm.DB) {
-    InitMigrationDown(db)
 }

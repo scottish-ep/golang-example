@@ -8,12 +8,12 @@ import (
 )
 
 func main() {
-    dsn := "root:@tcp(127.0.0.1:3306)/gorm_testing_db"
+    dsn := "root:@tcp(127.0.0.1:3306)/gorm_testing_db?parseTime=true"
     db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
     if err != nil {
         panic("failed to connect database")
     }
-    
+
     migration.RegisterMigration()
-    migration.RunMigration(db)
+    migration.RunMigration(db, true)
 }
