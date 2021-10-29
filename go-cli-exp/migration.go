@@ -26,11 +26,11 @@ func addMaterial(material string) []string {
 func commands() {
     app.Commands = []cli.Command{
         {
-            Name: "apple",
+            Name: "add:materrial",
             Aliases: []string{"p"},
             Usage: "Add apple to pizza",
             Action: func(c *cli.Context) {
-                ap := "apple"
+                ap := c.Args().Get(0)
                 apples := addMaterial(ap)
                 m := strings.Join(apples, " ")
                 fmt.Println(m)
